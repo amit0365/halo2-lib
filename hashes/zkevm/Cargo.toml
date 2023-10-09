@@ -34,7 +34,7 @@ env_logger = "0.10"
 test-case = "3.1.0"
 
 [features]
-default = ["halo2-axiom", "display"]
+default = ["halo2-pse", "display"]
 display = ["halo2-base/display", "snark-verifier/display"]
 halo2-pse = ["halo2-base/halo2-pse", "snark-verifier/halo2-pse"]
 halo2-axiom = ["halo2-base/halo2-axiom", "snark-verifier/halo2-axiom"]
