@@ -1,6 +1,6 @@
 #![allow(clippy::needless_range_loop)]
 use getset::Getters;
-
+use crate::poseidon::hasher::State;
 use crate::ff::PrimeField;
 
 /// The type used to hold the MDS matrix
@@ -45,6 +45,11 @@ impl<F, const T: usize, const RATE: usize> AsRef<Mds<F, T>> for MDSMatrix<F, T, 
 }
 
 impl<F: PrimeField, const T: usize, const RATE: usize> MDSMatrix<F, T, RATE> {
+    /// Applies `MDSMatrix` to the state
+    pub(crate) fn apply(&self, state: &mut State<F, T>) {
+            state.0 = self.mul_vector(&state.0);
+        }
+
     pub(crate) fn mul_vector(&self, v: &[F; T]) -> [F; T] {
         let mut res = [F::ZERO; T];
         for i in 0..T {
@@ -168,5 +173,26 @@ impl<F: PrimeField, const T: usize, const RATE: usize> MDSMatrix<F, T, RATE> {
         // col_hat = first column of m_prime_prime.transpose() without first element = first row of m_prime_prime without first element
         let col_hat: [F; RATE] = m_prime_prime[0][1..].try_into().unwrap();
         (m_prime, SparseMDSMatrix { row, col_hat })
+    }
+}
+
+impl<F: PrimeField, const T: usize, const RATE: usize> SparseMDSMatrix<F, T, RATE> {
+    /// Applies the sparse MDS matrix to the state
+    pub(crate) fn apply(&self, state: &mut State<F, T>) {
+        let words = state.words();
+        state.0[0] = self
+            .row
+            .iter()
+            .zip(words.iter())
+            .fold(F::ZERO, |acc, (e, cell)| acc + (*e * *cell));
+
+        for ((new_word, col_el), word) in (state.0)
+            .iter_mut()
+            .skip(1)
+            .zip(self.col_hat.iter())
+            .zip(words.iter().skip(1))
+        {
+            *new_word = *col_el * words[0] + word;
+        }
     }
 }

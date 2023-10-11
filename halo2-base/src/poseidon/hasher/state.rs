@@ -1,12 +1,11 @@
 use std::iter;
-
+use std::ops::Index;
 use itertools::Itertools;
-
 use crate::{
     gates::GateInstructions,
     poseidon::hasher::{mds::SparseMDSMatrix, spec::OptimizedPoseidonSpec},
     safe_types::SafeBool,
-    utils::ScalarField,
+    utils::{ScalarField, PrimeField},
     AssignedValue, Context,
     QuantumCell::{Constant, Existing},
 };
@@ -247,5 +246,63 @@ impl<F: ScalarField, const T: usize, const RATE: usize> PoseidonState<F, T, RATE
         .collect::<Vec<_>>()
         .try_into()
         .unwrap();
+    }
+}
+
+/// `State` is structure `T` sized field elements that are subjected to
+/// permutation
+#[derive(Clone, Debug, PartialEq)]
+pub struct State<F: PrimeField, const T: usize>(pub(crate) [F; T]);
+
+impl<F: PrimeField, const T: usize> Default for State<F, T> {
+    /// The capacity value is 2**64 + (o − 1) where o the output length.
+    fn default() -> Self {
+        let mut state = [F::ZERO; T];
+        state[0] = F::from_u128(1 << 64);
+        State(state)
+    }
+}
+
+impl<F: PrimeField, const T: usize> State<F, T> {
+    /// Applies sbox for all elements of the state.
+    /// Only supports `alpha = 5` sbox case.
+    pub(crate) fn sbox_full(&mut self) {
+        for e in self.0.iter_mut() {
+            let tmp = e.mul(*e);
+            e.mul_assign(tmp);
+            e.mul_assign(tmp);
+        }
+    }
+
+    /// Partial round sbox applies sbox to the first element of the state.
+    /// Only supports `alpha = 5` sbox case
+    pub(crate) fn sbox_part(&mut self) {
+        let tmp = self.0[0].mul(self.0[0]);
+        self.0[0].mul_assign(tmp);
+        self.0[0].mul_assign(tmp);
+    }
+
+    /// Adds constants to all elements of the state
+    pub(crate) fn add_constants(&mut self, constants: &[F; T]) {
+        for (e, constant) in self.0.iter_mut().zip(constants.iter()) {
+            e.add_assign(constant)
+        }
+    }
+
+    /// Only adds a constant to the first element of the state.It is used with
+    /// optimized rounds constants where only single element is added in
+    /// each partial round
+    pub(crate) fn add_constant(&mut self, constant: &F) {
+        self.0[0].add_assign(constant)
+    }
+
+    /// Copies elements of the state
+    pub fn words(&self) -> [F; T] {
+        self.0
+    }
+
+    /// Second element of the state is the result
+    pub(crate) fn result(&self) -> F {
+        self.0[1]
     }
 }

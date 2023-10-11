@@ -868,6 +868,15 @@ pub trait GateInstructions<F: ScalarField> {
         range_bits: usize,
     ) -> Vec<AssignedValue<F>>;
 
+    /// Constrains and computes the value of a bit representation. Returns the computed number.
+    ///
+    /// Assumes `bits` is a binary representation of the number.
+    fn bits_to_num(
+        &self,
+        ctx: &mut Context<F>,
+        bits: Vec<AssignedValue<F>>,
+    ) -> AssignedValue<F>;
+
     /// Constrains and computes `a`<sup>`exp`</sup> where both `a, exp` are witnesses. The exponent is computed in the native field `F`.
     ///
     /// Constrains that `exp` has at most `max_bits` bits.
@@ -1273,6 +1282,32 @@ impl<F: ScalarField> GateInstructions<F> for GateChip<F> {
         }
         bit_cells
     }
+
+    /// Constrains and computes the value of a bit representation. Returns the computed number.
+    ///
+    /// Assumes `bits` is a binary representation of the number.
+    fn bits_to_num(
+        &self,
+        ctx: &mut Context<F>,
+        bits: Vec<AssignedValue<F>>,
+    ) -> AssignedValue<F> {
+        // Begin with an accumulator initialized to 0.
+        let mut acc = ctx.load_constant(F::ZERO);
+        let two = ctx.load_constant(F::from(2u64));
+
+        // Iterate through bits, left to right.
+        for (i, bit) in bits.into_iter().enumerate() {
+            // Double the accumulator (shift left in binary).
+            
+            acc = self.mul(ctx, acc, two);
+
+            // Add the current bit.
+            acc = self.add(ctx, acc, bit);
+        }
+
+        acc
+    }
+
 
     /// Constrains and computes `a^exp` where both `a, exp` are witnesses. The exponent is computed in the native field `F`.
     ///

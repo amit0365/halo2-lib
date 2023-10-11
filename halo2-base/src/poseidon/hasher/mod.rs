@@ -1,6 +1,6 @@
 use crate::{
     gates::{GateInstructions, RangeInstructions},
-    poseidon::hasher::{spec::OptimizedPoseidonSpec, state::PoseidonState},
+    poseidon::hasher::{spec::OptimizedPoseidonSpec, state::PoseidonState, state::State},
     safe_types::{SafeBool, SafeTypeChip},
     utils::BigPrimeField,
     AssignedValue, Context,
@@ -27,6 +27,13 @@ pub mod state;
 pub struct PoseidonHasher<F: ScalarField, const T: usize, const RATE: usize> {
     spec: OptimizedPoseidonSpec<F, T, RATE>,
     consts: OnceCell<PoseidonHasherConsts<F, T, RATE>>,
+}
+/// Statefull Poseidon hasher.
+#[derive(Clone, Debug)]
+pub struct PoseidonHash<F: ScalarField, const T: usize, const RATE: usize> {
+    spec: OptimizedPoseidonSpec<F, T, RATE>,
+    state: State<F, T>,
+    absorbing: Vec<F>,
 }
 #[derive(Clone, Debug, Getters)]
 struct PoseidonHasherConsts<F: ScalarField, const T: usize, const RATE: usize> {
@@ -111,6 +118,90 @@ pub struct PoseidonCompactOutput<F: ScalarField> {
     /// is_final = 1 ==> this is the end of a logical input.
     #[getset(get = "pub")]
     is_final: SafeBool<F>,
+}
+
+impl<F: ScalarField, const T: usize, const RATE: usize> PoseidonHash<F, T, RATE> {
+    /// Create new Poseidon hasher.
+    pub fn new<const R_F: usize, const R_P: usize, const SECURE_MDS: usize>() -> Self {
+        Self {
+            spec: OptimizedPoseidonSpec::<F, T, RATE>::new::<R_F, R_P, SECURE_MDS>(),
+            state: State::default(),
+            absorbing: Vec::new(),
+        }
+    }
+
+    /// Initialize a poseidon hasher from an existing spec.
+    pub fn from_spec(spec: OptimizedPoseidonSpec<F, T, RATE>) -> Self {
+        Self { spec, state: State::default(), absorbing: Vec::new() }
+    }
+
+    /// Appends elements to the absorption line updates state while `RATE` is
+    /// full
+    pub fn update(&mut self, elements: &[F]) {
+        let mut input_elements = self.absorbing.clone();
+        input_elements.extend_from_slice(elements);
+
+        for chunk in input_elements.chunks(RATE) {
+            if chunk.len() < RATE {
+                // Must be the last iteration of this update. Feed unpermutaed inputs to the
+                // absorbation line
+                self.absorbing = chunk.to_vec();
+            } else {
+                // Add new chunk of inputs for the next permutation cycle.
+                for (input_element, state) in chunk.iter().zip(self.state.0.iter_mut().skip(1)) {
+                    state.add_assign(input_element);
+                }
+                // Perform intermediate permutation
+                self.spec.permute(&mut self.state);
+                // Flush the absorption line
+                self.absorbing.clear();
+            }
+        }
+    }
+
+    /// Results a single element by absorbing already added inputs
+    pub fn squeeze(&mut self) -> F {
+        let mut last_chunk = self.absorbing.clone();
+        {
+            // Expect padding offset to be in [0, RATE)
+            debug_assert!(last_chunk.len() < RATE);
+        }
+        // Add the finishing sign of the variable length hashing. Note that this mut
+        // also apply when absorbing line is empty
+        last_chunk.push(F::ONE);
+        // Add the last chunk of inputs to the state for the final permutation cycle
+
+        for (input_element, state) in last_chunk.iter().zip(self.state.0.iter_mut().skip(1)) {
+            state.add_assign(input_element);
+        }
+
+        // Perform final permutation
+        self.spec.permute(&mut self.state);
+        // Flush the absorption line
+        self.absorbing.clear();
+        // Returns the challenge while preserving internal state
+        self.state.result()
+    }
+}
+
+/// ATTETION: input_elements.len() needs to be fixed at compile time.
+fn fix_len_array_squeeze<F: ScalarField, const T: usize, const RATE: usize>(
+    ctx: &mut Context<F>,
+    gate: &impl GateInstructions<F>,
+    input_elements: &[AssignedValue<F>],
+    state: &mut PoseidonState<F, T, RATE>,
+    spec: &OptimizedPoseidonSpec<F, T, RATE>,
+) -> AssignedValue<F> {
+    let exact = input_elements.len() % RATE == 0;
+
+    for chunk in input_elements.chunks(RATE) {
+        state.permutation(ctx, gate, chunk, None, spec);
+    }
+    if exact {
+        state.permutation(ctx, gate, &[], None, spec);
+    }
+
+    state.s[1]
 }
 
 impl<F: ScalarField, const T: usize, const RATE: usize> PoseidonHasher<F, T, RATE> {
@@ -331,22 +422,3 @@ impl<F: ScalarField, const T: usize, const RATE: usize> PoseidonSponge<F, T, RAT
     }
 }
 
-/// ATTETION: input_elements.len() needs to be fixed at compile time.
-fn fix_len_array_squeeze<F: ScalarField, const T: usize, const RATE: usize>(
-    ctx: &mut Context<F>,
-    gate: &impl GateInstructions<F>,
-    input_elements: &[AssignedValue<F>],
-    state: &mut PoseidonState<F, T, RATE>,
-    spec: &OptimizedPoseidonSpec<F, T, RATE>,
-) -> AssignedValue<F> {
-    let exact = input_elements.len() % RATE == 0;
-
-    for chunk in input_elements.chunks(RATE) {
-        state.permutation(ctx, gate, chunk, None, spec);
-    }
-    if exact {
-        state.permutation(ctx, gate, &[], None, spec);
-    }
-
-    state.s[1]
-}

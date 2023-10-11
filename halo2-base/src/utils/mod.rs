@@ -1,6 +1,6 @@
 use core::hash::Hash;
 
-use crate::ff::{FromUniformBytes, PrimeField};
+pub use crate::ff::{FromUniformBytes, PrimeField};
 #[cfg(not(feature = "halo2-axiom"))]
 use crate::halo2_proofs::arithmetic::CurveAffine;
 use crate::halo2_proofs::circuit::Value;
