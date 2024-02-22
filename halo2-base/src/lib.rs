@@ -314,6 +314,7 @@ impl<F: ScalarField> Context<F> {
                 .advice_equalities
                 .push((a.cell.unwrap(), b.cell.unwrap()));
         }
+        assert_eq!(a.value(), b.value())
     }
 
     /// Pushes multiple advice cells to the `advice` column of [Context] and enables them by enabling the corresponding selector specified in `gate_offset`.

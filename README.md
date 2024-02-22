@@ -209,7 +209,7 @@ The other columns provide information about the [PLONKish arithmetization](https
 | 12  | 139        | 24                | 2         | 2.6s                | 3.3s                 | 5.3s                 |
 | 13  | 68         | 12                | 1         | 2.2s                | 2.6s                 | 4.7s                 |
 | 14  | 34         | 6                 | 1         | 2.1s                | 2.4s                 | 4.5s                 |
-| 15  | 17         | 3                 | 1         | `1.98s` ⚡          | 2.28s                | 4.5s                 |
+| 15  | 17         | 3                 | 1         | `1.98s` ⚡           | 2.28s                | 4.5s                 |
 | 16  | 8          | 2                 | 1         | 2.3s                | 2.5s                 | 5.2s                 |
 | 17  | 4          | 1                 | 1         | 2.7s                | 2.9s                 | 6s                   |
 | 18  | 2          | 1                 | 1         | 4.4s                | 4.7s                 | 9.5s                 |

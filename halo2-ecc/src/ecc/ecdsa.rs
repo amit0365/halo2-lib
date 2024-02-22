@@ -33,7 +33,6 @@ where
     let n = scalar_chip.p.to_biguint().unwrap();
     let n = FixedOverflowInteger::from_native(&n, scalar_chip.num_limbs, scalar_chip.limb_bits);
     let n = n.assign(ctx);
-
     // check r,s are in [1, n - 1]
     let r_valid = scalar_chip.is_soft_nonzero(ctx, &r);
     let s_valid = scalar_chip.is_soft_nonzero(ctx, &s);

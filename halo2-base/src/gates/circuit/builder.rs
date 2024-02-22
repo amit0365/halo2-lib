@@ -277,6 +277,7 @@ impl<F: ScalarField> BaseCircuitBuilder<F> {
             lookup_bits: self.lookup_bits(),
             num_instance_columns: ni,
         };
+        println!("params = {:?}", params);
         self.config_params = params.clone();
         #[cfg(feature = "display")]
         {

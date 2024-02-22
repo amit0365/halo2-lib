@@ -52,9 +52,9 @@ jemallocator={ version="=0.5", optional=true }
 mimalloc={ version="=0.1", default-features=false, optional=true }
 
 [features]
-default=["halo2-pse", "display", "test-utils"]
+default=["halo2-pse", "display", "test-utils", "dev-graph"]
 asm=["halo2_proofs_axiom?/asm"]
-dev-graph=["halo2_proofs?/dev-graph", "halo2_proofs_axiom?/dev-graph", "plotters"]
+dev-graph=["halo2_proofs?/dev-graph", "plotters"]
 halo2-pse=["halo2_proofs/circuit-params"]
 halo2-axiom=["halo2_proofs_axiom"]
 display=[]

@@ -874,7 +874,7 @@ pub trait GateInstructions<F: ScalarField> {
     fn bits_to_num(
         &self,
         ctx: &mut Context<F>,
-        bits: Vec<AssignedValue<F>>,
+        bits: &[AssignedValue<F>],
     ) -> AssignedValue<F>;
 
     /// Constrains and computes `a`<sup>`exp`</sup> where both `a, exp` are witnesses. The exponent is computed in the native field `F`.
@@ -1283,29 +1283,18 @@ impl<F: ScalarField> GateInstructions<F> for GateChip<F> {
         bit_cells
     }
 
-    /// Constrains and computes the value of a bit representation. Returns the computed number.
+    /// Constrains and returns field representation of little-endian bit vector `bits`.
     ///
-    /// Assumes `bits` is a binary representation of the number.
-    fn bits_to_num(
-        &self,
-        ctx: &mut Context<F>,
-        bits: Vec<AssignedValue<F>>,
-    ) -> AssignedValue<F> {
-        // Begin with an accumulator initialized to 0.
-        let mut acc = ctx.load_constant(F::ZERO);
-        let two = ctx.load_constant(F::from(2u64));
+    /// Assumes values of `bits` are boolean.
+    /// * `bits`: slice of [QuantumCell]'s that contains bit representation in little-endian form
+    fn bits_to_num(&self, ctx: &mut Context<F>, bits: &[AssignedValue<F>]) -> AssignedValue<F> {
+        assert!((bits.len() as u32) <= F::CAPACITY);
 
-        // Iterate through bits, left to right.
-        for (i, bit) in bits.into_iter().enumerate() {
-            // Double the accumulator (shift left in binary).
-            
-            acc = self.mul(ctx, acc, two);
-
-            // Add the current bit.
-            acc = self.add(ctx, acc, bit);
-        }
-
-        acc
+        self.inner_product(
+            ctx,
+            bits.iter().copied(),
+            self.pow_of_two[..bits.len()].iter().map(|c| Constant(*c)),
+        )
     }
 
 

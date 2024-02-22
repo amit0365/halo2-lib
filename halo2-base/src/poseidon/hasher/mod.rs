@@ -33,6 +33,7 @@ pub struct PoseidonHasher<F: ScalarField, const T: usize, const RATE: usize> {
 pub struct PoseidonHash<F: ScalarField, const T: usize, const RATE: usize> {
     spec: OptimizedPoseidonSpec<F, T, RATE>,
     state: State<F, T>,
+    init_state: State<F, T>,
     absorbing: Vec<F>,
 }
 #[derive(Clone, Debug, Getters)]
@@ -123,16 +124,25 @@ pub struct PoseidonCompactOutput<F: ScalarField> {
 impl<F: ScalarField, const T: usize, const RATE: usize> PoseidonHash<F, T, RATE> {
     /// Create new Poseidon hasher.
     pub fn new<const R_F: usize, const R_P: usize, const SECURE_MDS: usize>() -> Self {
+        let init_state = State::default();
         Self {
             spec: OptimizedPoseidonSpec::<F, T, RATE>::new::<R_F, R_P, SECURE_MDS>(),
-            state: State::default(),
+            state: init_state.clone(),
+            init_state,
             absorbing: Vec::new(),
         }
     }
 
     /// Initialize a poseidon hasher from an existing spec.
     pub fn from_spec(spec: OptimizedPoseidonSpec<F, T, RATE>) -> Self {
-        Self { spec, state: State::default(), absorbing: Vec::new() }
+        let init_state = State::default();
+        Self { spec, state: init_state.clone(), init_state, absorbing: Vec::new() }
+    }
+
+    /// Reset state to default and clear the buffer.
+    pub fn clear(&mut self) {
+        self.state = self.init_state.clone();
+        self.absorbing.clear();
     }
 
     /// Appends elements to the absorption line updates state while `RATE` is
@@ -182,6 +192,8 @@ impl<F: ScalarField, const T: usize, const RATE: usize> PoseidonHash<F, T, RATE>
         // Returns the challenge while preserving internal state
         self.state.result()
     }
+
+
 }
 
 /// ATTETION: input_elements.len() needs to be fixed at compile time.

@@ -1,5 +1,4 @@
 #![allow(non_snake_case)]
-
 use super::pairing::PairingChip;
 use super::{Fp12Chip, Fp2Chip, FpChip};
 use crate::ecc::EccChip;
@@ -44,7 +43,6 @@ impl<'chip, F: BigPrimeField> BlsSignatureChip<'chip, F> {
         let g2_chip = EccChip::new(&fp2_chip);
 
         let g1_assigned = self.pairing_chip.load_private_g1(ctx, g1);
-
         let hash_m_assigned = self.pairing_chip.load_private_g2(ctx, msghash);
 
         let signature_points = signatures

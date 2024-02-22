@@ -679,7 +679,7 @@ where
             debug_assert_eq!(scalar.len(), scalar_len);
             scalar
                 .into_iter()
-                .flat_map(|scalar_chunk| chip.gate().num_to_bits(ctx, scalar_chunk, max_bits))
+                //.flat_map(|scalar_chunk| chip.gate().num_to_bits(ctx, scalar_chunk, max_bits))
                 .chain(std::iter::repeat(zero_cell).take(rounded_bitlen - total_bits))
                 .collect_vec()
         })

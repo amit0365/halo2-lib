@@ -4,6 +4,8 @@ version = "0.1.4"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 
+[workspace]
+
 [dependencies]
 array-init = "2.0.0"
 ethers-core = "2.0.8"

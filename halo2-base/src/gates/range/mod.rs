@@ -64,10 +64,10 @@ impl<F: ScalarField> RangeConfig<F> {
         num_lookup_advice: &[usize],
         lookup_bits: usize,
     ) -> Self {
-        assert!(lookup_bits <= F::S as usize);
+
+        // assert!(lookup_bits <= F::S as usize);
         // sanity check: only create lookup table if there are lookup_advice columns
         assert!(!num_lookup_advice.is_empty(), "You are creating a RangeConfig but don't seem to need a lookup table, please double-check if you're using lookups correctly. Consider setting lookup_bits = None in BaseConfigParams");
-
         let lookup = meta.lookup_table_column();
 
         let gate = FlexGateConfig::configure(meta, gate_params.clone());

@@ -62,14 +62,12 @@ impl<F: ScalarField, const T: usize, const RATE: usize> PoseidonState<F, T, RATE
         }
         self.sbox_full(ctx, gate, constants.last().unwrap());
         self.apply_mds(ctx, gate, pre_sparse_mds);
-
         // Partial rounds
         let constants = &spec.constants.partial;
         for (constant, sparse_mds) in constants.iter().zip(sparse_matrices.iter()) {
             self.sbox_part(ctx, gate, constant);
             self.apply_sparse_mds(ctx, gate, sparse_mds);
         }
-
         // Second half of the full rounds
         let constants = &spec.constants.end;
         for constants in constants.iter() {
