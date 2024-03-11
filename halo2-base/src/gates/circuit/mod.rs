@@ -163,7 +163,7 @@ impl<F: ScalarField> Circuit<F> for BaseCircuitBuilder<F> {
     /// Performs the actual computation on the circuit (e.g., witness generation), populating the lookup table and filling in all the advice values for a particular proof.
     fn synthesize(
         &self,
-        config: Self::Config,
+        config: &mut Self::Config,
         mut layouter: impl Layouter<F>,
     ) -> Result<(), Error> {
         // only load lookup table if we are actually doing lookups
